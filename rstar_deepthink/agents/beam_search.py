@@ -169,25 +169,29 @@ class BS(BaseTree):
             new_node.state["text"] = step_result
             new_node.state["final_answer"] = parser_result["final_answer"]
         elif parser_result["action"]:
-            observation = code_execution(node, parser_result)
-            new_node.state["action"] = parser_result["action"]
-            new_node.state["action_input"] = parser_result["action_input"]
-            new_node.state["observation"] = observation
-            if CODE_END in parser_result["action_input"]:
-                observation = self.obs_wrap(observation)
-                new_node.state["text"] = f"{step_result}{self.config.step_delim}{observation}"
-                if "Error" in observation:
+            if self.config.use_code_tool:
+                observation = code_execution(node, parser_result)
+                new_node.state["action"] = parser_result["action"]
+                new_node.state["action_input"] = parser_result["action_input"]
+                new_node.state["observation"] = observation
+                if CODE_END in parser_result["action_input"]:
+                    observation = self.obs_wrap(observation)
+                    new_node.state["text"] = f"{step_result}{self.config.step_delim}{observation}"
+                    if "Error" in observation:
+                        new_node.is_terminal = True
+                        new_node.state["final_answer"] = TOO_MANY_CODE_ERRORS
+                else:
+                    new_node.state["text"] = step_result
+
+                if "error" in observation.lower():
+                    observation = self.obs_wrap(observation)
+                    step_result = step_result + CODE_END if CODE_END not in step_result else step_result
+                    new_node.state["text"] = f"{step_result}{self.config.step_delim}{observation}"
                     new_node.is_terminal = True
                     new_node.state["final_answer"] = TOO_MANY_CODE_ERRORS
             else:
+                # Keep the generated text as-is and skip any tool execution.
                 new_node.state["text"] = step_result
-                
-            if "error" in observation.lower():
-                observation = self.obs_wrap(observation)
-                step_result = step_result + CODE_END if CODE_END not in step_result else step_result
-                new_node.state["text"] = f"{step_result}{self.config.step_delim}{observation}"
-                new_node.is_terminal = True
-                new_node.state["final_answer"] = TOO_MANY_CODE_ERRORS
 
         else:
             new_node.state["text"] = step_result
