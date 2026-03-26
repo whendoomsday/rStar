@@ -44,6 +44,7 @@ SEARCH_CHOICES = ChoiceEnum(_SEARCH_CHOICES)
 
 _PROMPT_CHOICES = [
     "rstar", 
+    "rs_vqa",
 ]
 
 PROMPT_CHOICES = ChoiceEnum(_PROMPT_CHOICES)
@@ -132,6 +133,12 @@ class BaseConfig:
     )
     need_value_func: bool = field(
         default=False, metadata={"help": "whether to use value head in decoding"}
+    )
+    use_code_tool: bool = field(
+        default=True, metadata={"help": "whether to execute parser actions (e.g. python_interpreter)"}
+    )
+    use_multimodal: bool = field(
+        default=False, metadata={"help": "whether to pass image input to vLLM multi-modal API"}
     )
     update_leaf_value: bool = field(
         default=False, metadata={"help": "update leaf value in mcts"}

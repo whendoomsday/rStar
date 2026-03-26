@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT license.
 import torch
-from typing import List
+from typing import List, Union, Dict, Any
 from vllm import LLM, SamplingParams
 
 
@@ -11,7 +11,7 @@ class Reward():
         self.value_estimate = value_estimate
 
 def llm_generate(
-    prompts: List[str],
+    prompts: List[Union[str, Dict[str, Any]]],
     sampling_params: SamplingParams,
     engine: LLM,
 ):

@@ -1,0 +1,30 @@
+mode: "mcts"
+model_dir: ""
+few_shot_path: "./rstar_deepthink/few_shots/few_shots.json"
+prompt_path: "./rstar_deepthink/few_shots/sft_prompt.json"
+prompt_wrap: "rs_vqa"
+result_unwrap: "rs_vqa"
+step_delim: "\n"
+stop: ["<end_of_step>", "<end_of_code>", "<end_of_answer>", "</final>"]
+
+# Search
+max_depth: 12
+iterations: 8
+n_generate_sample: 4
+best_of: 4
+c_puct: 2
+is_sampling: False
+
+# Task setting
+use_code_tool: False
+use_multimodal: True
+need_value_func: False
+update_leaf_value: False
+errors_threshold: 0
+
+# Generation
+temperature: 0.8
+top_p: 1.0
+max_tokens: 1024
+max_model_len: 4096
+batch_size: 64

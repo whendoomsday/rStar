@@ -3,6 +3,7 @@
 # Adapted from https://github.com/MARIO-Math-Reasoning/Super_MARIO
 from __future__ import annotations
 from termcolor import colored
+from PIL import Image
 from typing import Dict, Any, Optional, Type, List, Tuple, Callable, Union
 from pydantic import BaseModel, PrivateAttr, conlist, ConfigDict, field_validator
 from functools import partial
@@ -43,6 +44,12 @@ class BS(BaseTree):
             self.prompt_wrap = rstar_prompt_wrap
             self.obs_wrap = rstar_obs_wrap
             self.step_unwrap = rstar_step_result_unwrap
+        elif self.config.prompt_wrap == "rs_vqa":
+            from .utils import rs_prompt_wrap, rstar_obs_wrap, rs_step_result_unwrap
+
+            self.prompt_wrap = rs_prompt_wrap
+            self.obs_wrap = rstar_obs_wrap
+            self.step_unwrap = rs_step_result_unwrap
 
         self.candidate_nodes.append(self.current_node)
         self.current_top_num = self.config.step_beam_width
@@ -98,12 +105,20 @@ class BS(BaseTree):
             prompt = self.prompt_wrap(
                 self.question, 
                 partial_solution,
-                self.config
+                self.config,
+                image_path=self.image_path,
             )
             if is_value_only:
                 prompt = {
                     "prefix": "",
                     "text": prompt,
+                }
+            elif self.config.use_multimodal and self.image_path:
+                prompt = {
+                    "prompt": prompt,
+                    "multi_modal_data": {
+                        "image": Image.open(self.image_path).convert("RGB"),
+                    },
                 }
             prompts.append(prompt)
         return prompts
@@ -169,25 +184,29 @@ class BS(BaseTree):
             new_node.state["text"] = step_result
             new_node.state["final_answer"] = parser_result["final_answer"]
         elif parser_result["action"]:
-            observation = code_execution(node, parser_result)
-            new_node.state["action"] = parser_result["action"]
-            new_node.state["action_input"] = parser_result["action_input"]
-            new_node.state["observation"] = observation
-            if CODE_END in parser_result["action_input"]:
-                observation = self.obs_wrap(observation)
-                new_node.state["text"] = f"{step_result}{self.config.step_delim}{observation}"
-                if "Error" in observation:
+            if self.config.use_code_tool:
+                observation = code_execution(node, parser_result)
+                new_node.state["action"] = parser_result["action"]
+                new_node.state["action_input"] = parser_result["action_input"]
+                new_node.state["observation"] = observation
+                if CODE_END in parser_result["action_input"]:
+                    observation = self.obs_wrap(observation)
+                    new_node.state["text"] = f"{step_result}{self.config.step_delim}{observation}"
+                    if "Error" in observation:
+                        new_node.is_terminal = True
+                        new_node.state["final_answer"] = TOO_MANY_CODE_ERRORS
+                else:
+                    new_node.state["text"] = step_result
+
+                if "error" in observation.lower():
+                    observation = self.obs_wrap(observation)
+                    step_result = step_result + CODE_END if CODE_END not in step_result else step_result
+                    new_node.state["text"] = f"{step_result}{self.config.step_delim}{observation}"
                     new_node.is_terminal = True
                     new_node.state["final_answer"] = TOO_MANY_CODE_ERRORS
             else:
+                # Keep the generated text as-is and skip any tool execution.
                 new_node.state["text"] = step_result
-                
-            if "error" in observation.lower():
-                observation = self.obs_wrap(observation)
-                step_result = step_result + CODE_END if CODE_END not in step_result else step_result
-                new_node.state["text"] = f"{step_result}{self.config.step_delim}{observation}"
-                new_node.is_terminal = True
-                new_node.state["final_answer"] = TOO_MANY_CODE_ERRORS
 
         else:
             new_node.state["text"] = step_result

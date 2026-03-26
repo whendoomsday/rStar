@@ -42,6 +42,7 @@ class BaseTree(BaseModel):
 
     config: Any
     question: str
+    image_path: Optional[str] = None
     ground_truth: Optional[Union[str, List[str]]] = None
     llm: Any = None
     root: Optional[Type[BaseNode]] = None
@@ -70,7 +71,10 @@ class BaseTree(BaseModel):
     
     def create_root(self) -> Type[BaseNode]:
         root = self.create_node()
-        root.state["extra_info"] = f"question: {self.question}"
+        if self.image_path:
+            root.state["extra_info"] = f"question: {self.question}\nimage_path: {self.image_path}"
+        else:
+            root.state["extra_info"] = f"question: {self.question}"
         return root
 
     @abstractmethod

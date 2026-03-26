@@ -88,7 +88,12 @@ if __name__ == '__main__':
         
     with open(saved_jsonl_file, "a+", encoding='utf-8') as writer:
         for cur_data in tqdm(batch(data, config.batch_size), desc="Main Processing"):
-            agents = [agent(config=config, question=d["question"], ground_truth=str(d["answer"])) 
+            agents = [agent(
+                        config=config,
+                        question=d["question"],
+                        ground_truth=str(d["answer"]),
+                        image_path=d.get("image_path"),
+                      ) 
                       for d in cur_data]
             jsonlines = solver.solve(agents, saved_jsonl_file, cur_data)
             for d in cur_data:

@@ -90,6 +90,7 @@ def rstar_prompt_wrap(
     question: str, 
     partial_solution: str,
     config,
+    image_path: Optional[str] = None,
 ) -> str:
     step_delim = config.step_delim
     prompt_pot = PROMPT_RSTAR(config)
@@ -117,6 +118,30 @@ def rstar_prompt_wrap(
     return prompt + ""
 
 
+def rs_prompt_wrap(
+    question: str,
+    partial_solution: str,
+    config,
+    image_path: Optional[str] = None,
+) -> str:
+    """
+    Prompt template for image-grounded QA style tasks (e.g., remote sensing).
+    The model is instructed to finish with an explicit <final>...</final> tag.
+    """
+    step_delim = config.step_delim
+    image_hint = image_path if image_path else "N/A"
+    instruction = (
+        "You are solving an image-grounded question."
+        f"{step_delim}Image path: {image_hint}"
+        f"{step_delim}Think step by step and end your response with exactly one final answer tag:"
+        f"{step_delim}<final>your concise answer</final>"
+    )
+    prompt = f"{instruction}{step_delim}Question: {question}{step_delim}"
+    if partial_solution:
+        prompt = "".join([prompt, partial_solution])
+    return prompt
+
+
 def rstar_obs_wrap(observation: str) -> str:
     return f"{OUTPUT}{observation}{OUTPUT_END}"
 
@@ -137,6 +162,22 @@ def rstar_step_result_unwrap(
         parser_result["action"] = "python_interpreter"
         parser_result["action_input"] = text
         return text, parser_result
+
+
+def rs_step_result_unwrap(
+    text: str,
+) -> Tuple[str, Dict[str, str]]:
+    parser_result = {
+        "action": "",
+        "action_input": "",
+        "final_answer": "",
+    }
+    if "<final>" in text and "</final>" in text:
+        start = text.rfind("<final>") + len("<final>")
+        end = text.rfind("</final>")
+        parser_result["final_answer"] = text[start:end].strip()
+        return text, parser_result
+    return text, parser_result
 
 
 def is_multi_choice(answer):
