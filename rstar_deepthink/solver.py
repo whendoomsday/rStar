@@ -16,7 +16,7 @@ from typing import Optional, Any, Dict, List, Callable, Type, Tuple
 from pydantic import BaseModel, ConfigDict, field_validator
 from .agents.tree import BaseTree
 from .agents.mcts import MCTS
-from .llms.llms import llm_generate, rm_generate
+from .llms.llms import llm_generate, rm_generate, Reward
 from .llms.llm_engine import llm_engine, rm_engine
 from .constants import TIMEOUT_SECONDS, ERROR_COLOR
 
@@ -250,7 +250,9 @@ class Solver(BaseModel):
                     outputs = self.reward_model(prompts=prompts)
                     reconstructed_outputs = [outputs[bos_idx : eos_idx] for bos_idx, eos_idx in zip(prompts_span, prompts_span[1:])]
                 else:
-                    reconstructed_outputs = [None] * (len(prompts_span) - 1)
+                    reconstructed_outputs = []
+                    for bos_idx, eos_idx in zip(prompts_span, prompts_span[1:]):
+                        reconstructed_outputs.append([Reward(value_estimate=0.0)] * (eos_idx - bos_idx))
                 
                 # selection
                 valid_agents = self.value_postprocess(reconstructed_outputs, valid_agents)

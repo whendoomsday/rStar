@@ -159,6 +159,21 @@ CFG="config/sft_eval_mcts.yaml"
 CUDA_VISIBLE_DEVICES="0" python main.py --qaf $QAF --custom_cfg $CFG --model_dir $MODEL --reward_model_dir $RM
 ```
 
+#### MCTS with local Qwen model (no tool execution, no RM)
+
+If you want to run MCTS with a local `Qwen2.5-7B` model and disable code execution tools (e.g., for non-math tasks), use:
+
+```bash
+MODEL="/path/to/your/local/Qwen2.5-7B"
+QAF="test set path"
+CFG="config/local_qwen_no_tool_mcts.yaml"
+CUDA_VISIBLE_DEVICES="0" python main.py --qaf $QAF --custom_cfg $CFG --model_dir $MODEL
+```
+
+Notes:
+- `use_code_tool: False` skips `python_interpreter` calls during node expansion.
+- `need_value_func: False` disables reward-model scoring and falls back to a simple zero baseline score for MCTS selection.
+
 Executing the command or further increasing the number of nodes may lead to enhanced performance, but it would also require a considerable amount of GPU resources. To optimize, consider reducing `n_generate_sample` and `iterations` to 16 and 8, respectively, which still delivers satisfactory results. Alternatively, replacing MCTS with step beam search improves search speed, though with a slight accuracy trade-off. Use the following command to implement this strategy.
 
 ```bash
